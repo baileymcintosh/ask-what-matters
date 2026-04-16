@@ -7,9 +7,11 @@
 
 > Reviews are the single most trusted signal in travel booking — 81% of travelers say they rely on them. But there's a structural problem: reviewers write what they remember, not what future guests need to know.
 
-> Take this resort in Broomfield, Colorado. It advertises a full-service spa with six treatment rooms, a 27-hole golf course, and rooms renovated last October. I scrolled through over a thousand reviews. Staff is mentioned everywhere. Pools — everywhere. The spa? Forty-five reviews out of a thousand. The golf course? Seventeen. No one has written about what the rooms actually feel like post-renovation.
+> Take this hotel in Pompei, Italy — the Villa dei Misteri, steps from the archaeological ruins. It advertises a restaurant. Out of 146 reviews, nearly every single one says the same thing: great location, nice staff, very close to the ruins. Almost nothing about dinner. One reviewer buried near the bottom says: "describes itself as having a restaurant but it was never open after 6pm — the whole area shuts down when the crowds go home."
 
-> If I'm planning a golf trip with a spa day, I'm going in blind. The hotel isn't bad — the review corpus just hasn't caught up to it.
+> There are also noise complaints — but they're in German and Dutch. An English-speaking traveler browsing this page has no idea.
+
+> If you're arriving by train from Rome at 8pm expecting dinner, you're going in blind.
 
 ---
 
@@ -25,25 +27,25 @@
 
 ## 3. Demo (~2 min)
 
-**[Show browse page]**
+**[Show browse page — Villa dei Misteri Hotel]**
 
-> Here's the property page. A prospective traveler is planning a spa-and-golf trip. They read the reviews. Nothing useful about the spa. Nothing about the golf course. They submit a quick question: *"Is the spa worth booking in advance? How far ahead?"* That takes five seconds and requires no review.
+> Here's the property page. A traveler is planning a late arrival from Rome. They scroll through the reviews. Location, location, location. Staff was nice. Close to the ruins. Nothing about whether dinner is actually available. They submit a question: *"Is the restaurant open for dinner, or is it breakfast only?"* Five seconds, no review required.
 
 **[Show question submitted, gap panel updating]**
 
-> That question hits our demand signal. On the back end, the gap scorer combines two streams: embedding-based coverage analysis of the review corpus, and this demand signal from guest questions. Spa just moved to the top of the gap rankings for this property.
+> That question hits our demand signal. On the back end, the gap scorer combines embedding-based coverage analysis of the review corpus with this demand signal from guest questions. Food & Dining just moved to the top of the gap rankings for this property.
 
 **[Switch to reviewer view]**
 
-> Now a guest checks out and opens the review form. Before they type a word, they see the gap panel — three topics the property is missing: Spa, Golf, and Room Condition post-renovation. The spa is ranked first because someone just asked about it.
+> A guest checks out and opens the review form. Before they type a word, they see the gap panel — three topics this property is missing: Food & Dining, Noise Levels, and WiFi. Food & Dining is ranked first because someone just asked about it — and it's listed under "Travelers asking."
 
 **[Show reviewer typing, topics crossing off]**
 
-> They write their review. The moment they mention the spa — it crosses off the list in real time. They write about the golf course — crosses off. They mention the renovated rooms — crosses off. The list empties. They submit.
+> They write their review. They mention the restaurant — breakfast only, closes at nine, nothing nearby after seven. *Food & Dining crosses off.* They mention the thin walls. *Noise Levels crosses off.* They note WiFi only reaches the corridor. *WiFi crosses off.*
 
 **[Show traveler notification]**
 
-> The traveler gets notified: a recent reviewer just wrote about the spa. They read it. They book. A stay they were hesitant about — not because the hotel was bad, but because no one had written what they needed to know.
+> The traveler gets notified: a recent reviewer just wrote about dining at this property. They read it. They book the early check-in, plan dinner in Naples before arriving. A stay they were hesitant about — not because the hotel was bad, but because no one had written what they needed to know.
 
 ---
 
