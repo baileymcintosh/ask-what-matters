@@ -23,7 +23,7 @@ RELEVANCE_THRESHOLD  = 0.40  # cosine similarity for a review to "count" as on-t
 COVERAGE_THRESHOLD   = 0.15  # flag as gap if < this fraction of weighted reviews discuss it
 CONTESTED_STD        = 0.38  # flag as contested if VADER sentiment std dev exceeds this
 CONTESTED_MIN        = 4     # need at least this many on-topic reviews to call contested
-DEMAND_BETA          = 0.5   # demand multiplier strength
+DEMAND_BETA          = 3.0   # demand multiplier strength (higher = more sensitive to SNSAS)
 
 TOPICS = [
     # ── Always relevant: experiential categories reviewers write about in depth ──
@@ -136,6 +136,28 @@ def load_questions() -> pd.DataFrame:
     return pd.DataFrame(columns=["eg_property_id", "question", "topic", "timestamp", "source"])
 
 
+def clean_question(question: str) -> str | None:
+    """
+    Screen and clean a user-submitted question.
+    Returns a cleaned string, or None if the question should be rejected.
+    """
+    resp = get_client().chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content":
+            f"A traveler submitted this question about a hotel:\n\"{question}\"\n\n"
+            f"1. Reject (return exactly: REJECT) if the text contains: hate speech, profanity, "
+            f"personal attacks, spam, promotional content, or anything unrelated to a hotel stay.\n"
+            f"2. Otherwise, return a lightly cleaned version: fix obvious typos, normalise "
+            f"capitalisation, ensure it ends with a question mark. Do not change the meaning "
+            f"or add information. Return only the cleaned question, nothing else."}],
+        temperature=0.0, max_tokens=120,
+    )
+    result = resp.choices[0].message.content.strip()
+    if result.upper().startswith("REJECT"):
+        return None
+    return result
+
+
 def save_question(property_id: str, question: str, topic: str) -> None:
     """Append a user-submitted question to the CSV."""
     p = Path(__file__).parent / "data" / "traveler_questions.csv"
@@ -241,6 +263,32 @@ def prop_info(pid: str, desc_df: pd.DataFrame) -> dict:
     return {"name": name, "city": city, "location": location, "rating": rating_str}
 
 
+@st.cache_data(show_spinner=False)
+def property_summary(property_id: str) -> str:
+    """Generate a 2-sentence property summary from description + amenities."""
+    desc_df, _ = load_data()
+    row = desc_df[desc_df["eg_property_id"] == property_id]
+    if row.empty:
+        return ""
+    r    = row.iloc[0]
+    name = HOTEL_NAMES.get(property_id[-8:], "this hotel")
+    city = _clean(r.get("city", ""))
+    desc = _clean(r.get("property_description", ""))[:600]
+    amen = _clean(r.get("popular_amenities_list", ""))[:300]
+    prompt = (
+        f"Hotel: {name}, {city}\nDescription: {desc}\nAmenities: {amen}\n\n"
+        f"Write exactly 2 sentences summarizing what makes this property distinctive. "
+        f"Be specific — mention actual amenities, features, or setting. "
+        f"Do not mention the hotel name. No marketing fluff. Plain prose."
+    )
+    resp = get_client().chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3, max_tokens=100,
+    )
+    return resp.choices[0].message.content.strip()
+
+
 def prop_dropdown_label(pid: str, desc_df: pd.DataFrame) -> str:
     info = prop_info(pid, desc_df)
     if not info:
@@ -333,25 +381,20 @@ def covered_topics(text: str, gaps: list) -> set:
 
 @st.cache_data(show_spinner=False)
 def classify_question_topic(question: str) -> str:
-    """Find the best-matching TOPICS label for a question using embedding similarity."""
-    q_vec  = np.array(embed((question,))[0])
-    q_norm = np.linalg.norm(q_vec)
-    if q_norm == 0:
-        return TOPICS[0][0]
-    q_unit  = q_vec / q_norm
-    anchors = anchor_embeddings()
-    best_label, best_sim = TOPICS[0][0], -1.0
-    for label, _, _ in TOPICS:
-        if label not in anchors:
-            continue
-        a = np.array(anchors[label])
-        a_n = np.linalg.norm(a)
-        if a_n == 0:
-            continue
-        sim = float(q_unit @ (a / a_n))
-        if sim > best_sim:
-            best_sim, best_label = sim, label
-    return best_label
+    """Classify a traveler question into the best-matching TOPICS label using GPT."""
+    labels = [label for label, _, _ in TOPICS]
+    resp = get_client().chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content":
+            f"Classify this hotel question into exactly one of the following categories.\n\n"
+            f"Categories: {', '.join(labels)}\n\n"
+            f"Question: \"{question}\"\n\n"
+            f"Return only the category name, exactly as written above. Nothing else."}],
+        temperature=0.0, max_tokens=20,
+    )
+    result = resp.choices[0].message.content.strip()
+    # Validate the response is a known label; fall back to first if not
+    return result if result in labels else labels[0]
 
 
 # ── Gap analysis ──────────────────────────────────────────────────────────────
@@ -464,15 +507,24 @@ def analyze_property(property_id: str, demand: tuple = ()) -> list:
                 is_contested = True
 
         is_gap = coverage < COVERAGE_THRESHOLD
-        if not is_gap and not is_contested:
+        d      = demand_scores.get(label, 0.0)
+
+        # Skip only if not a gap, not contested, and no demand signal
+        if not is_gap and not is_contested and d == 0.0:
             continue
 
-        # Demand multiplier
-        d            = demand_scores.get(label, 0.0)
-        multiplier   = 1.0 + DEMAND_BETA * d
-        base_score   = (1.0 - coverage) if not is_contested else (0.5 * (1.0 - coverage))
-        sort_score   = base_score * multiplier
-        gap_type     = "contested" if is_contested else "gap"
+        multiplier = 1.0 + DEMAND_BETA * d
+        if is_gap:
+            base_score = (1.0 - coverage)
+            gap_type   = "gap"
+        elif is_contested:
+            base_score = 0.5 * (1.0 - coverage)
+            gap_type   = "contested"
+        else:
+            # Well-covered but travelers are asking — surface via demand alone
+            base_score = 0.4 * d
+            gap_type   = "demand"
+        sort_score = base_score * multiplier
 
         results.append({"label": label, "icon": icon, "keywords": keywords,
                          "type": gap_type, "score": sort_score})

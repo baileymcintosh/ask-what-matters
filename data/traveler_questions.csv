@@ -1,30 +1,3 @@
 eg_property_id,question,topic,timestamp,source
-110f01b8ae518a0ee41047bce5c22572988a435e10ead72dc1af793bba8ce0b0,Is it easy to walk to the ruins from the hotel?,Location & Neighborhood,2026-02-14,seed
-110f01b8ae518a0ee41047bce5c22572988a435e10ead72dc1af793bba8ce0b0,How quiet is it at night given all the tourists?,Noise Levels,2026-03-01,seed
-110f01b8ae518a0ee41047bce5c22572988a435e10ead72dc1af793bba8ce0b0,Is the breakfast worth it or better to eat locally?,Breakfast,2026-03-10,seed
-db38b19b897dbece3e34919c662b3fd66d23b615395d11fb69264dd3a9b17723,Is the gym well equipped for a serious workout?,Pool & Facilities,2026-01-20,seed
-db38b19b897dbece3e34919c662b3fd66d23b615395d11fb69264dd3a9b17723,How reliable is the WiFi for working remotely?,WiFi / Connectivity,2026-02-05,seed
-db38b19b897dbece3e34919c662b3fd66d23b615395d11fb69264dd3a9b17723,Do you need a car or is there a shuttle to Denver?,Location & Neighborhood,2026-03-12,seed
-5f5a0cd8662f0ddf297f2d27358f680daab5d3ac22fd45a4e1c3c3ec2c101a12,What is the breakfast like — proper German spread?,Breakfast,2026-02-20,seed
-5f5a0cd8662f0ddf297f2d27358f680daab5d3ac22fd45a4e1c3c3ec2c101a12,Is the wellness area included or always extra?,Pool & Facilities,2026-03-08,seed
-3b984f3ba8df55b2609a1e33fd694cf8407842e1d833c9b4d993b07fc83a2820,Is it safe to walk around the area at night?,Location & Neighborhood,2026-01-28,seed
-3b984f3ba8df55b2609a1e33fd694cf8407842e1d833c9b4d993b07fc83a2820,Do the staff speak good English?,Service & Staff,2026-02-18,seed
-9a0043fd4258a1286db1e253ca591662b3aac849da12d0d4f67e08b8f59be65f,Does street noise come through the windows at night?,Noise Levels,2026-02-10,seed
-9a0043fd4258a1286db1e253ca591662b3aac849da12d0d4f67e08b8f59be65f,Is parking easy to find near the hotel?,Parking,2026-03-05,seed
-e52d67a758ce4ad0229aacc97e5dfe89984c384c51a70208f9e0cc65c9cd4676,How easy is it to get to the city center from here?,Location & Neighborhood,2026-01-15,seed
-e52d67a758ce4ad0229aacc97e5dfe89984c384c51a70208f9e0cc65c9cd4676,Are the rooms properly soundproofed against Bangkok traffic?,Noise Levels,2026-02-22,seed
-e52d67a758ce4ad0229aacc97e5dfe89984c384c51a70208f9e0cc65c9cd4676,Is the garden area actually peaceful or just decorative?,Atmosphere & Vibe,2026-03-11,seed
-ff26cdda236b233f7c481f0e896814075ac6bed335e162e0ff01d5491343f838,Is there a free shuttle to the ski lifts?,Location & Neighborhood,2026-01-10,seed
-ff26cdda236b233f7c481f0e896814075ac6bed335e162e0ff01d5491343f838,How cozy is the lodge atmosphere after a day on the slopes?,Atmosphere & Vibe,2026-02-14,seed
-fa014137b3ea9af6a90c0a86a1d099e46f7e56d6eb33db1ad1ec4bdac68c3caa,Is it worth paying extra for an ocean view room?,Room Quality,2026-02-01,seed
-fa014137b3ea9af6a90c0a86a1d099e46f7e56d6eb33db1ad1ec4bdac68c3caa,How fresh is the seafood at the restaurant?,Food & Dining,2026-03-14,seed
-823fb2499b4e37d99acb65e7198e75965d6496fd1c579f976205c0e6179206df,Can you walk to the Colosseum and Vatican from here?,Location & Neighborhood,2026-01-25,seed
-823fb2499b4e37d99acb65e7198e75965d6496fd1c579f976205c0e6179206df,Is breakfast included or always an extra charge?,Breakfast,2026-02-28,seed
-823fb2499b4e37d99acb65e7198e75965d6496fd1c579f976205c0e6179206df,How helpful are staff with local tips and restaurant recommendations?,Service & Staff,2026-03-09,seed
-a036cbe1d9fbf9cba088075d1b4d966ee871df55aa4a58ba0da23c116c499052,How close is it really to good game viewing?,Location & Neighborhood,2026-02-05,seed
-a036cbe1d9fbf9cba088075d1b4d966ee871df55aa4a58ba0da23c116c499052,Is the lodge feel more rustic or comfortable luxury?,Atmosphere & Vibe,2026-03-07,seed
-3216b1b7885bffdb336265a8de7322ba0cd477cfb3d4f99d19acf488f76a1941,How safe is the area around the hotel at night?,Location & Neighborhood,2026-02-12,seed
-f2d8d9557208d58577e9df7ff34e42bf86fb5b10fdfae0c3040d14c374a2a2b9,Is the ocean view from the rooms actually good?,Room Quality,2026-01-30,seed
-f2d8d9557208d58577e9df7ff34e42bf86fb5b10fdfae0c3040d14c374a2a2b9,Does it get noisy on weekends?,Noise Levels,2026-03-02,seed
-7d027ef72c02eaa17af3c993fd5dba50d17b41a6280389a46c13c7e2c32a5b06,Is the pool a decent size and worth using?,Pool & Facilities,2026-02-08,seed
-7d027ef72c02eaa17af3c993fd5dba50d17b41a6280389a46c13c7e2c32a5b06,How easy is it to get around without a car?,Location & Neighborhood,2026-03-13,seed
+db38b19b897dbece3e34919c662b3fd66d23b615395d11fb69264dd3a9b17723,Are the pools heated?,Pool & Facilities,2026-04-16,user
+db38b19b897dbece3e34919c662b3fd66d23b615395d11fb69264dd3a9b17723,"Do you need to reserve the tennis courts in advance, or are they usually free?",Parking,2026-04-16,user

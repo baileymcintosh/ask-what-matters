@@ -10,8 +10,7 @@ import streamlit as st
 from utils import (
     load_data, load_questions, save_question, wipe_user_questions, get_demand_scores,
     covered_topics, analyze_property, nudge_intro, classify_question_topic,
-    prop_info, prop_dropdown_label, logo_img_tag,
-    TOPIC_ICON_MAP,
+    prop_info, prop_dropdown_label, logo_img_tag, property_summary, clean_question,
 )
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -36,18 +35,9 @@ st.markdown("""
     border-bottom: 1px solid #e8e8e8;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: 0 2rem;
     z-index: 9999;
   }
-  .topbar-nav {
-    display: flex;
-    gap: 1.75rem;
-    font-size: 0.84rem;
-    color: #555;
-  }
-  .topbar-nav span { cursor: pointer; transition: color 0.15s; }
-  .topbar-nav span:hover { color: #1B2259; }
 
   .block-container {
     padding-top: 5rem !important;
@@ -55,27 +45,54 @@ st.markdown("""
     max-width: 860px !important;
   }
 
-  /* Page nav strip */
-  .page-nav {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.75rem;
+  /* Nav buttons — small and muted */
+  [data-testid="baseButton-secondary"] {
+    background: transparent !important;
+    color: #4A5270 !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 6px !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    padding: 0.2rem 0.6rem !important;
+    width: 100% !important;
+    white-space: nowrap !important;
   }
-  .nav-btn {
-    font-size: 0.82rem;
-    font-weight: 600;
-    padding: 0.35rem 1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.12);
-    color: #7B87AB;
-    background: transparent;
-    transition: all 0.15s;
+  [data-testid="baseButton-secondary"]:hover {
+    color: #C5CCDF !important;
+    border-color: rgba(255,255,255,0.18) !important;
+    background: rgba(255,255,255,0.04) !important;
   }
-  .nav-btn.active {
-    background: #FFD700;
-    color: #0D1021;
-    border-color: #FFD700;
+  /* Main action buttons — gold */
+  [data-testid="baseButton-primary"] {
+    background: #FFD700 !important;
+    color: #0D1021 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    font-size: 0.92rem !important;
+    padding: 0.65rem 1.5rem !important;
+    width: 100% !important;
+  }
+  [data-testid="baseButton-primary"]:hover { background: #f0ca00 !important; }
+
+  /* Demo nav */
+  .demo-nav .stButton button {
+    background: transparent !important;
+    color: #4A5270 !important;
+    border: 1px solid rgba(255,255,255,0.07) !important;
+    border-radius: 6px !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    padding: 0.2rem 0.7rem !important;
+    width: 100% !important;
+  }
+  .demo-nav .stButton button:hover {
+    color: #C5CCDF !important;
+    border-color: rgba(255,255,255,0.15) !important;
+  }
+  .demo-nav .active .stButton button {
+    color: #EEF2FF !important;
+    border-color: rgba(255,255,255,0.2) !important;
   }
 
   .page-title {
@@ -173,6 +190,18 @@ st.markdown("""
   .topic-badge.done      { color: #34D399; background: rgba(52,211,153,0.12); }
   .topic-badge.contested { color: #F59E0B; background: rgba(245,158,11,0.12); }
   .topic-badge.demand    { color: #A78BFA; background: rgba(167,139,250,0.12); }
+  .topic-questions {
+    margin-top: 0.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+  }
+  .topic-q {
+    font-size: 0.75rem;
+    color: #7B87AB;
+    line-height: 1.4;
+  }
+  .topic-row.covered .topic-q { color: #3D4866; }
   .nudge-footer {
     font-size: 0.75rem;
     color: #4A5270;
@@ -285,18 +314,6 @@ st.markdown("""
   [data-testid="stSlider"] [data-testid="stTickBarMin"],
   [data-testid="stSlider"] [data-testid="stTickBarMax"] { color: #7B87AB !important; }
 
-  .stButton button {
-    background: #FFD700 !important;
-    color: #0D1021 !important;
-    border: none !important;
-    border-radius: 10px !important;
-    font-weight: 700 !important;
-    font-size: 0.92rem !important;
-    padding: 0.65rem 1.5rem !important;
-    width: 100% !important;
-    transition: background 0.15s !important;
-  }
-  .stButton button:hover { background: #f0ca00 !important; }
 
   label, .stMarkdown p { color: #C5CCDF !important; }
   [data-testid="stAlert"] {
@@ -307,6 +324,7 @@ st.markdown("""
   }
   ul[data-testid="stSelectboxVirtualDropdown"] { background: #161B33 !important; }
   #MainMenu, footer, header { visibility: hidden; }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -355,6 +373,7 @@ if not st.session_state.get("_warmed"):
                 _info = prop_info(_pid, desc_df)
                 _city = _info.get("city", "this property") or "this property"
                 nudge_intro(_city, tuple(g["label"] for g in _gaps))
+            property_summary(_pid)
         except Exception:
             pass
         _bar.progress((_i + 1) / len(_prop_ids),
@@ -365,27 +384,19 @@ if not st.session_state.get("_warmed"):
 
 # ── Fixed top bar ─────────────────────────────────────────────────────────────
 
-st.markdown(f"""
-<div class="topbar">
-  {logo_img_tag(28)}
-  <div class="topbar-nav">
-    <span>Stays</span><span>Flights</span><span>Cars</span><span>My Trips</span>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+# ── Topbar ────────────────────────────────────────────────────────────────────
 
+st.markdown(f'<div class="topbar">{logo_img_tag(28)}</div>', unsafe_allow_html=True)
 
-# ── Page nav ──────────────────────────────────────────────────────────────────
+# ── Nav ───────────────────────────────────────────────────────────────────────
 
-nav_col1, nav_col2, nav_rest = st.columns([1.4, 1.8, 6])
-with nav_col1:
-    if st.button("✍️  Write a review", use_container_width=True,
-                 type="primary" if st.session_state.page in ("form", "thanks") else "secondary"):
+_c1, _c2, _ = st.columns([1.6, 1.6, 7])
+with _c1:
+    if st.button("Review (Feature 1)", use_container_width=True):
         st.session_state.page = "form"
         st.rerun()
-with nav_col2:
-    if st.button("🔍  Browse properties", use_container_width=True,
-                 type="primary" if st.session_state.page == "browse" else "secondary"):
+with _c2:
+    if st.button("Browse (Feature 2)", use_container_width=True):
         st.session_state.page = "browse"
         st.rerun()
 
@@ -465,129 +476,84 @@ elif st.session_state.page == "browse":
 </div>
 """, unsafe_allow_html=True)
 
-    questions_df  = load_questions()
-    demand_scores = get_demand_scores(browse_id, questions_df)
-    demand_tuple  = tuple(sorted(demand_scores.items()))
-
-    col_reviews, col_panel = st.columns([3, 2], gap="large")
-
-    # ── Recent reviews ────────────────────────────────────────────────────────
-    with col_reviews:
-        st.markdown('<p class="section-label">Recent guest reviews</p>', unsafe_allow_html=True)
-
-        prop_reviews = (
-            reviews_df[reviews_df["eg_property_id"] == browse_id]
-            .dropna(subset=["acquisition_date"])
-            .sort_values("acquisition_date", ascending=False)
-            .head(10)
+    # ── Property summary ──────────────────────────────────────────────────────
+    summary = property_summary(browse_id)
+    if summary:
+        st.markdown(
+            f'<p style="font-size:0.86rem;color:#9BA7C5;line-height:1.6;margin:0.25rem 0 1.25rem;">{summary}</p>',
+            unsafe_allow_html=True,
         )
 
-        if prop_reviews.empty:
-            st.markdown('<p style="color:#7B87AB;font-size:0.88rem;">No reviews yet for this property.</p>', unsafe_allow_html=True)
-        else:
-            for _, rev in prop_reviews.iterrows():
-                rating_val = ""
-                try:
-                    rp = rev.get("rating_parsed", {})
-                    if isinstance(rp, dict):
-                        overall = rp.get("overall", rp.get("Overall", ""))
-                        if overall:
-                            rating_val = f"{float(overall):.0f}"
-                except Exception:
-                    pass
+    # ── Recent reviews (full width) ───────────────────────────────────────────
+    st.markdown('<p class="section-label">Recent guest reviews</p>', unsafe_allow_html=True)
 
-                date_str = ""
-                try:
-                    date_str = pd.to_datetime(rev["acquisition_date"]).strftime("%b %Y")
-                except Exception:
-                    pass
+    prop_reviews = (
+        reviews_df[reviews_df["eg_property_id"] == browse_id]
+        .dropna(subset=["acquisition_date"])
+        .sort_values("acquisition_date", ascending=False)
+        .head(10)
+    )
 
-                text = str(rev.get("review_text", "")).strip()
-                if not text or text.lower() in ("nan", "none"):
-                    continue
+    if prop_reviews.empty:
+        st.markdown('<p style="color:#7B87AB;font-size:0.88rem;">No reviews yet for this property.</p>', unsafe_allow_html=True)
+    else:
+        for idx, (_, rev) in enumerate(prop_reviews.iterrows()):
+            rating_val = ""
+            try:
+                rp = rev.get("rating_parsed", {})
+                if isinstance(rp, dict):
+                    overall = rp.get("overall", rp.get("Overall", ""))
+                    if overall:
+                        rating_val = f"{float(overall):.0f}"
+            except Exception:
+                pass
 
-                display_text = text if len(text) <= 300 else text[:297] + "…"
-                rating_html  = f'<span class="review-rating">{rating_val} / 10</span>' if rating_val else ""
+            date_str = ""
+            try:
+                date_str = pd.to_datetime(rev["acquisition_date"]).strftime("%b %Y")
+            except Exception:
+                pass
 
-                st.markdown(f"""
+            text = str(rev.get("review_text", "")).strip()
+            if not text or text.lower() in ("nan", "none"):
+                continue
+
+            is_long      = len(text) > 300
+            expand_key   = f"rev_exp_{browse_id}_{idx}"
+            is_expanded  = st.session_state.get(expand_key, False)
+            display_text = text if (not is_long or is_expanded) else text[:297] + "…"
+            rating_html  = f'<span class="review-rating">{rating_val} / 5</span>' if rating_val else ""
+
+            st.markdown(f"""
 <div class="review-card">
   <div class="review-meta">{rating_html}{date_str}</div>
   <div class="review-text">{display_text}</div>
 </div>
 """, unsafe_allow_html=True)
 
-    # ── TWTK + questions panel ────────────────────────────────────────────────
-    with col_panel:
-        with st.spinner("Loading insights…"):
-            b_gaps = analyze_property(browse_id, demand=demand_tuple)
+            if is_long:
+                btn_label = "Show less ↑" if is_expanded else "Read more ↓"
+                if st.button(btn_label, key=f"rev_btn_{browse_id}_{idx}"):
+                    st.session_state[expand_key] = not is_expanded
+                    st.rerun()
 
-        if b_gaps:
-            b_city       = b_info.get("city", "this property") or "this property"
-            b_gap_labels = tuple(g["label"] for g in b_gaps)
-            b_intro      = nudge_intro(b_city, b_gap_labels)
-
-            rows_html = ""
-            for gap in b_gaps:
-                has_demand = demand_scores.get(gap["label"], 0.0) > 0
-                if gap.get("type") == "contested":
-                    badge_css, badge = "topic-badge contested", "Mixed reviews"
-                elif has_demand:
-                    badge_css, badge = "topic-badge demand", "Travelers asking"
-                else:
-                    badge_css, badge = "topic-badge", "Not documented"
-
-                rows_html += (
-                    f'<div class="topic-row">'
-                    f'  <div class="topic-left"><span>{gap["icon"]}</span>'
-                    f'    <span>{gap["label"][0].upper() + gap["label"][1:]}</span></div>'
-                    f'  <span class="{badge_css}">{badge}</span>'
-                    f'</div>'
-                )
-
-            st.markdown(f"""
-<div class="nudge-panel">
-  <h4>Travelers want to know</h4>
-  <p class="nudge-intro">{b_intro}</p>
-  {rows_html}
-</div>
-""", unsafe_allow_html=True)
-
-        # Questions already asked for this property
-        prop_questions = questions_df[questions_df["eg_property_id"] == browse_id]
-        if not prop_questions.empty:
-            q_rows_html = ""
-            for _, q in prop_questions.iterrows():
-                topic_icon   = TOPIC_ICON_MAP.get(q.get("topic", ""), "❓")
-                source_label = "yours" if q.get("source") == "user" else ""
-                source_html  = f'<span class="q-source">{source_label}</span>' if source_label else ""
-                q_rows_html += (
-                    f'<div class="q-row">'
-                    f'  <span class="q-icon">{topic_icon}</span>'
-                    f'  <span>{q["question"]}</span>'
-                    f'  {source_html}'
-                    f'</div>'
-                )
-            st.markdown(f"""
-<div class="q-panel">
-  <h4>Questions travelers have asked</h4>
-  {q_rows_html}
-</div>
-""", unsafe_allow_html=True)
-
-    # ── Submit a question ─────────────────────────────────────────────────────
+    # ── Submit a question (full width, bottom) ────────────────────────────────
     st.write("")
-    st.markdown('<p class="section-label">Something giving you pause?</p>', unsafe_allow_html=True)
-    st.markdown('<p class="section-hint">Ask anything the reviews didn\'t answer. Your question gets passed on anonymously to help reviewers know what to address.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-label">Still not sure about something?</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-hint">What would you still want to know before booking? We\'ll make sure future guests are prompted to address it in their reviews.</p>', unsafe_allow_html=True)
+
+    if "q_counter" not in st.session_state:
+        st.session_state.q_counter = 0
 
     question_input = st.text_area(
         "",
         placeholder="e.g. Is it easy to get a taxi late at night from here?",
         height=90,
         label_visibility="collapsed",
-        key="question_input",
+        key=f"question_input_{st.session_state.q_counter}",
     )
 
-    if st.button("Submit question →", use_container_width=True):
+    if st.button("Submit →", use_container_width=True):
         q = question_input.strip()
         if not q:
             st.warning("Please write a question first.")
@@ -595,25 +561,33 @@ elif st.session_state.page == "browse":
             st.warning("Please write a more complete question.")
         else:
             with st.spinner("Filing your question…"):
+                q = clean_question(q)
+                if q is None:
+                    st.warning("That question couldn't be saved — please keep it relevant to your hotel stay.")
+                    st.stop()
                 topic = classify_question_topic(q)
             save_question(browse_id, q, topic)
-            st.success(f"Saved under **{topic}**. This will now influence what reviewers are nudged to cover.")
+            st.session_state.q_counter += 1  # clears the text box
+            st.success(f"Saved under **{topic}**. Future reviewers will be nudged to cover this.")
             st.rerun()
 
     # ── Demo wipe ─────────────────────────────────────────────────────────────
     st.write("")
-    st.markdown("---")
+    questions_df = load_questions()
     n_user_q = len(questions_df[questions_df["source"] == "user"])
-    st.markdown(
-        f'<p style="font-size:0.8rem;color:#4A5270;">'
-        f'Demo: {n_user_q} user-submitted question{"s" if n_user_q != 1 else ""} on record. '
-        f'Seed questions are always preserved.</p>',
-        unsafe_allow_html=True,
-    )
-    if st.button("Wipe user questions", use_container_width=True):
-        n = wipe_user_questions()
-        st.success(f"Cleared {n} user-submitted question{'s' if n != 1 else ''}.")
-        st.rerun()
+    wipe_col, _ = st.columns([2, 5])
+    with wipe_col:
+        st.markdown(
+            f'<p style="font-size:0.75rem;color:#4A5270;margin-bottom:0.3rem;">'
+            f'{n_user_q} question{"s" if n_user_q != 1 else ""} on record</p>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('<style>.wipe-btn button{background:transparent!important;color:#4A5270!important;border:1px solid rgba(255,255,255,0.07)!important;font-size:0.75rem!important;font-weight:500!important;padding:0.25rem 0.75rem!important;}.wipe-btn button:hover{color:#FCA5A5!important;border-color:rgba(239,68,68,0.3)!important;}</style><div class="wipe-btn">', unsafe_allow_html=True)
+        if st.button("Wipe questions", use_container_width=True):
+            n = wipe_user_questions()
+            st.success(f"Cleared {n} question{'s' if n != 1 else ''}.")
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -707,26 +681,34 @@ else:
 
             rows_html = ""
             for gap in gaps:
-                done       = gap["label"] in covered
-                row_css    = "topic-row covered" if done else "topic-row"
-                icon       = "✅" if done else gap["icon"]
-                has_demand = demand_scores.get(gap["label"], 0.0) > 0
+                done    = gap["label"] in covered
+                row_css = "topic-row covered" if done else "topic-row"
+                icon    = "✅" if done else gap["icon"]
 
                 if done:
                     badge_css, badge = "topic-badge done", "Covered"
                 elif gap.get("type") == "contested":
-                    badge_css, badge = "topic-badge contested", "Mixed reviews"
-                elif gap.get("type") == "unique":
-                    badge_css, badge = "topic-badge", "Undocumented"
-                elif has_demand:
-                    badge_css, badge = "topic-badge demand", "Travelers asking"
+                    badge_css, badge = "topic-badge contested", "Contrasting reviews"
                 else:
                     badge_css, badge = "topic-badge", "Not documented"
+
+                # Specific questions for this topic from traveler submissions
+                prop_qs = questions_df[
+                    (questions_df["eg_property_id"] == selected_id) &
+                    (questions_df["topic"] == gap["label"])
+                ]["question"].dropna().tolist()
+                qs_html = ""
+                if prop_qs:
+                    qs_html = '<div class="topic-questions">' + "".join(
+                        f'<span class="topic-q">· {q.strip().rstrip("??")}?</span>'
+                        for q in prop_qs[:3]
+                    ) + "</div>"
 
                 rows_html += (
                     f'<div class="{row_css}">'
                     f'  <div class="topic-left"><span>{icon}</span>'
-                    f'    <span class="topic-name">{gap["label"][0].upper() + gap["label"][1:]}</span></div>'
+                    f'    <div><span class="topic-name">{gap["label"][0].upper() + gap["label"][1:]}</span>'
+                    f'    {qs_html}</div></div>'
                     f'  <span class="{badge_css}">{badge}</span>'
                     f'</div>'
                 )

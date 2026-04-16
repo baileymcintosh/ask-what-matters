@@ -1,0 +1,46 @@
+\frametitle{Signal 4 \& Scoring: Demand Weighting}
+\begin{columns}[T]
+\column{0.52\textwidth}
+\textbf{Demand signal derivation}\\[0.3em]
+\small
+Normalise SNSAS question counts to $[0,1]$:
+\[d_l = \frac{c_l}{\max_j c_j}\]
+where $c_l$ = count of user questions mapped to topic $l$.
+The most-asked topic always scores $d_l = 1.0$.
+
+\medskip
+\textbf{Cache-busting:} demand is passed as a sorted hashable tuple,
+forcing re-computation of \texttt{analyze\_property} whenever
+the question set changes:
+\begin{lstlisting}
+demand_tuple = tuple(sorted(
+    get_demand_scores(pid, questions_df).items()
+))
+gaps = analyze_property(pid, demand=demand_tuple)
+\end{lstlisting}
+
+\column{0.44\textwidth}
+\textbf{Final scoring formula}\\[0.3em]
+\small
+\[
+\text{score}_l =
+\text{base}_l \times (1 + \beta_d \cdot d_l)
+\]
+
+\textbf{Base scores by gap type:}
+\[
+\text{base}_l = \begin{cases}
+1 - \text{cov}_l & \text{gap (cov} < 0.15) \\[3pt]
+0.5(1 - \text{cov}_l) & \text{contested} \\[3pt]
+0.4\,d_l & \text{demand-only}
+\end{cases}
+\]
+
+$\beta_d = 3.0$: at this value, a single SNSAS question roughly
+doubles the score of a mid-strength gap topic.
+
+\medskip
+Top-3 by score are returned.
+LLM-unique topics are appended at a fixed score of $0.2$,
+not competing with formula-scored topics.
+\end{columns}
